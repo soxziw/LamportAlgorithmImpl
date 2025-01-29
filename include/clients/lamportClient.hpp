@@ -60,90 +60,24 @@ public:
     void terminate();
 
     /**
-     * getBlockchain() - get blockchain_.
-     */
-    Blockchain& getBlockchain() {
-        return blockchain_;
-    }
+    * updateLamportClock() - merge local lamport clock with remote lamport clock on receiving message.
+    *
+    * @param remote_lamport_clock
+    */
+    void updateLamportClock(int remote_lamport_clock);
 
     /**
-     * getBalanceTb() - get balance_tb_.
-     */
-    std::vector<int>& getBalanceTb() {
-        return balance_tb_;
-    }
+    * getLamportClock() - get a new local lamport clock on sending message.
+    */
+    int getLamportClock();
 
     /**
-     * getTransferPq() - get transfer_pq_.
-     */
-    std::priority_queue<Transfer, std::vector<Transfer>, TransferCompare>& getTransferPq() {
-        return transfer_pq_;
-    }
+    * transfer() - implement top transfer.
+    *
+    * @param update_transfer_result: update transfer result of current client or not. not update on releasing.
+    */
+    void transfer(bool update_transfer_result);
 
-    /**
-     * getTransferPqMutex() - get transfer_pq_mutex_.
-     */
-    std::mutex& getTransferPqMutex() {
-        return transfer_pq_mutex_;
-    }
-
-    /**
-     * getReplys() - get replys_.
-     */
-    std::vector<bool>& getReplys() {
-        return replys_;
-    }
-
-    /**
-     * getReplysMutex() - get replys_mutex_.
-     */
-    std::mutex& getReplysMutex() {
-        return replys_mutex_;
-    }
-
-    /**
-     * getFinishes() - get finishes_.
-     */
-    std::vector<bool>& getFinishes() {
-        return finishes_;
-    }
-
-    /**
-     * getFinishesMutex() - get finishes_mutex_.
-     */
-    std::mutex& getFinishesMutex() {
-        return finishes_mutex_;
-    }
-
-    /**
-     * getTransferResult() - get transfer_result_.
-     */
-    std::string& getTransferResult() {
-        return transfer_result_;
-    }
-
-    /**
-     * getLamportClock() - get lamport_clock_.
-     */
-    int& getLamportClock() {
-        return lamport_clock_;
-    }
-
-    /**
-     * getLamportClockMutex() - get lamport_clock_mutex_.
-     */
-    std::mutex& getLamportClockMutex() {
-        return lamport_clock_mutex_;
-    }
-   
-    /**
-     * getBalanceMutex() - get balance_mutex_.
-     */ 
-    std::mutex& getBalanceMutex() {
-        return balance_mutex_;
-    }
-
-private:
     Blockchain blockchain_; /* local blockchain */
     std::vector<int> balance_tb_; /* local balance table */
 

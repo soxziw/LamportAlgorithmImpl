@@ -4,11 +4,11 @@
 int BalanceTransRspProcessor::process(std::unique_ptr<Msg>&& msg) {
     auto interface_client_ptr = InterfaceClient::getInstance();
 
-    std::printf("[Client %d] Process BalanceTransRsp.\n", interface_client_ptr->getClientId());
+    std::printf("[Client %d] Process BalanceTransRsp.\n", interface_client_ptr->client_id_);
 
     BalanceTransRsp* msg_raw = dynamic_cast<BalanceTransRsp*>(msg.get());
     if (!msg_raw) { // Could not cast
-        std::printf("[ERROR][BalanceTransRspProcessor::process][Client %d] message does not fit in BalanceTransRsp.\n", interface_client_ptr->getClientId());
+        std::printf("[ERROR][BalanceTransRspProcessor::process][Client %d] message does not fit in BalanceTransRsp.\n", interface_client_ptr->client_id_);
         throw std::bad_cast();
     }
     std::unique_ptr<BalanceTransRsp> msg_ptr(static_cast<BalanceTransRsp*>(msg.release()));

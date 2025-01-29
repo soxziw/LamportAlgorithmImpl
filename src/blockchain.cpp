@@ -16,7 +16,7 @@ void Blockchain::addBlock(int sender_id, int receiver_id, int amount) {
 
 void Blockchain::printBlockchain() {
     for (int i = 0; i < blockchain_.size(); i++) {
-        std::printf("[Client %d] Block %d. Operation: %s; Previous Hash: %s; Hash: %s\n", LamportClient::getInstance()->getClientId(), i, blockchain_[i].operation.opr.c_str(), blockchain_[i].prev_hash.c_str(), blockchain_[i].hash.c_str());
+        std::printf("[Client %d] Block %d. Operation: %s; Previous Hash: %s; Hash: %s\n", LamportClient::getInstance()->client_id_, i, blockchain_[i].operation.opr.c_str(), blockchain_[i].prev_hash.c_str(), blockchain_[i].hash.c_str());
     }
 }
 

@@ -1,20 +1,20 @@
 #include "clients/interfaceClient.hpp"
-#include "utils.hpp"
+
 
 void InterfaceClient::init(int client_id, const std::vector<std::pair<std::string, int>>& ip_port_pairs) {
     initSockConfigs(client_id, ip_port_pairs);
 
     // Register parser for request/response of transfer/balance transaction
     std::printf("[Client %d] Register parser: TransferTransReqParser, BalanceTransReqParser, TransferTransRspParser, BalanceTransRspParser.\n", client_id);
-    getParserFactory().registerParser("TransferTransReq", []() { return std::make_unique<TransferTransReqParser>(); });
-    getParserFactory().registerParser("BalanceTransReq", []() { return std::make_unique<BalanceTransReqParser>(); });
-    getParserFactory().registerParser("TransferTransRsp", []() { return std::make_unique<TransferTransRspParser>(); });
-    getParserFactory().registerParser("BalanceTransRsp", []() { return std::make_unique<BalanceTransRspParser>(); });
+    parser_factory_.registerParser("TransferTransReq", []() { return std::make_unique<TransferTransReqParser>(); });
+    parser_factory_.registerParser("BalanceTransReq", []() { return std::make_unique<BalanceTransReqParser>(); });
+    parser_factory_.registerParser("TransferTransRsp", []() { return std::make_unique<TransferTransRspParser>(); });
+    parser_factory_.registerParser("BalanceTransRsp", []() { return std::make_unique<BalanceTransRspParser>(); });
 
     // Register processor for response of transfer/balance transanction
     std::printf("[Client %d] Register processor: TransferTransRspProcessor, BalanceTransRspProcessor.\n", client_id);
-    getProcessorFactory().registerProcessor("TransferTransRsp", []() { return std::make_unique<TransferTransRspProcessor>(); });
-    getProcessorFactory().registerProcessor("BalanceTransRsp", []() { return std::make_unique<BalanceTransRspProcessor>(); });
+    processor_factory_.registerProcessor("TransferTransRsp", []() { return std::make_unique<TransferTransRspProcessor>(); });
+    processor_factory_.registerProcessor("BalanceTransRsp", []() { return std::make_unique<BalanceTransRspProcessor>(); });
     
     // Start master and worker threads
     start();
@@ -35,34 +35,34 @@ void InterfaceClient::terminate() {
 
 int InterfaceClient::sendTransferTransReq(int client_id, int sender_id, int receiver_id, int amount) {
     // Add task to the queue for worker threads
-    std::unique_lock<std::mutex> lock(getMutex());
-    getTaskQueue().emplace([this, client_id, sender_id, receiver_id, amount] {
+    std::unique_lock<std::mutex> lock(mutex_);
+    task_queue_.emplace([this, client_id, sender_id, receiver_id, amount] {
         // Stringify a TransferTransReq into string
-        std::printf("[Client %d] Send TransferTransReq to client %d. sender_id: %d, receiver_id: %d, amount: %d.\n", getClientId(), client_id, sender_id, receiver_id, amount);
+        std::printf("[Client %d] Send TransferTransReq to client %d. sender_id: %d, receiver_id: %d, amount: %d.\n", client_id_, client_id, sender_id, receiver_id, amount);
         std::unique_ptr<TransferTransReq> transfer_trans_req_ptr = std::make_unique<TransferTransReq>(sender_id, receiver_id, amount, 0);
-        auto parser = this->getParserFactory().createParser("TransferTransReq");
+        auto parser = this->parser_factory_.createParser("TransferTransReq");
         std::string str = parser->stringify(std::move(transfer_trans_req_ptr));
 
-        sendMsg(shared_from_this(), client_id, str);
+        this->sendMsg(client_id, str);
     });
     lock.unlock();
-    getCondVar().notify_one();
+    cond_var_.notify_one();
     return 0;
 }
 
 int InterfaceClient::sendBalanceTransReq(int client_id) {
     // Add task to the queue for worker threads
-    std::unique_lock<std::mutex> lock(getMutex());
-    getTaskQueue().emplace([this, client_id] {
+    std::unique_lock<std::mutex> lock(mutex_);
+    task_queue_.emplace([this, client_id] {
         // Stringify a BalanceTransReq into string
-        std::printf("[Client %d] Send BalanceTransReq to client %d.\n", getClientId(), client_id);
+        std::printf("[Client %d] Send BalanceTransReq to client %d.\n", client_id_, client_id);
         std::unique_ptr<BalanceTransReq> balance_trans_req_ptr = std::make_unique<BalanceTransReq>(0);
-        auto parser = this->getParserFactory().createParser("BalanceTransReq");
+        auto parser = this->parser_factory_.createParser("BalanceTransReq");
         std::string str = parser->stringify(std::move(balance_trans_req_ptr));
 
-        sendMsg(shared_from_this(), client_id, str);
+        this->sendMsg(client_id, str);
     });
     lock.unlock();
-    getCondVar().notify_one();
+    cond_var_.notify_one();
     return 0;
 }

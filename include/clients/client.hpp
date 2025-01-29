@@ -22,63 +22,6 @@
 class Client : public std::enable_shared_from_this<Client> {
 public:
     /**
-     * getClientId() - get client_id_.
-     */
-    int& getClientId() {
-        return client_id_;
-    }
-
-    /**
-     * getKeepRunning() - get keep_running_.
-     */
-    bool& getKeepRunning() {
-        return keep_running_;
-    }
-
-    /**
-     * getParserFactory() - get parser_factory_.
-     */ 
-    ParserFactory& getParserFactory() {
-        return parser_factory_;
-    }
-
-    /**
-     * getProcessorFactory() - get processor_factory_.
-     */
-    ProcessorFactory& getProcessorFactory() {
-        return processor_factory_;
-    }
-
-    /**
-     * getConnectSockfds() - get connect_sockfds_.
-     */
-    std::vector<int>& getConnectSockfds() {
-        return connect_sockfds_;
-    }
-
-    /**
-     * getMutex() - get mutex_.
-     */
-    std::mutex& getMutex() {
-        return mutex_;
-    }
-
-    /**
-     * getCondVar() - get cond_var_.
-     */
-    std::condition_variable& getCondVar() {
-        return cond_var_;
-    }
-
-    /**
-     * getTaskQueue() - get task_queue_.
-     */
-    std::queue<std::function<void()>>& getTaskQueue() {
-        return task_queue_;
-    }
-
-protected:
-    /**
      * initSockConfigs() - init socket configurations.
      *
      * @param client_id: id of current client.
@@ -101,7 +44,14 @@ protected:
      */
     void stop();
 
-private:
+    /**
+    * sendMsg() - sending message to target client.
+    *
+    * @param target_client_id
+    * @param str
+    */
+    void sendMsg(int target_client_id, std::string& str);
+
     /**
      * process() - processing.
      *

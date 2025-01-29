@@ -10,7 +10,7 @@ void Client::initSockConfigs(int client_id, const std::vector<std::pair<std::str
 
 void Client::start() {
     std::printf("[Client %d] Start processing.\n", client_id_);
-    getKeepRunning() = true;
+    keep_running_ = true;
     master_thread_ = std::thread(&Client::masterThreadFunc, this);
     for (int i = 0; i < num_workers_; ++i) {
         worker_threads_.emplace_back(&Client::workerThreadFunc, this);
@@ -19,7 +19,7 @@ void Client::start() {
 
 void Client::stop() {
     std::printf("[Client %d] Stop processing.\n", client_id_);
-    getKeepRunning() = false;
+    keep_running_ = false;
 
     // Join worker threads
     for (auto& worker : worker_threads_) {
@@ -31,6 +31,18 @@ void Client::stop() {
     // Join master thread
     if (master_thread_.joinable()) {
         master_thread_.join();
+    }
+}
+
+void Client::sendMsg(int target_client_id, std::string& str) {
+    // Send message
+    if (connect_sockfds_[target_client_id] == -1) {
+        // ERROR not connected
+        std::printf("[ERROR][Client %d] Socket connection to client %d not set up.\n", client_id_, target_client_id);
+    }
+    if (send(connect_sockfds_[target_client_id], str.c_str(), str.size(), 0) < 0) {
+        // ERROR
+        std::printf("[ERROR][Client %d] Send RequestMsg to client %d fail, data: %s.\n", client_id_, target_client_id, str.c_str());
     }
 }
 
@@ -118,7 +130,7 @@ void Client::masterThreadFunc() {
         std::printf("[Client %d] Connect socket on client %d with ip %s, port %d.\n", client_id_, i, ip_port_pairs_[i].first.c_str(), ip_port_pairs_[i].second);
     }
 
-    while (getKeepRunning()) {
+    while (keep_running_) {
         struct epoll_event events[10];
         int nfds = epoll_wait(epoll_fd_, events, 10, -1);
         for (int i = 0; i < nfds; ++i) {
@@ -171,7 +183,7 @@ void Client::handleClient(int client_sock) {
 }
 
 void Client::workerThreadFunc() {
-    while (getKeepRunning()) {
+    while (keep_running_) {
         std::unique_lock<std::mutex> lock(mutex_);
         cond_var_.wait(lock, [this]{ return !task_queue_.empty(); });
         auto task = std::move(task_queue_.front());
