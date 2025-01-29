@@ -106,7 +106,6 @@ private:
      * process() - processing.
      *
      * @param str: message received from socket.
-     * Signal workers to stop and join threads.
      */
     int process(const std::string& str);
 
@@ -133,7 +132,7 @@ private:
     int client_id_;
     bool keep_running_; /* to terminate master and worker threads */
     std::vector<std::pair<std::string, int>> ip_port_pairs_;
-    std::vector<int> listen_sockfds_; /* to build up socket connections */
+    int listen_sockfd_; /* to build up socket connections */
     std::vector<int> connect_sockfds_; /* to send messages */
     std::vector<int> accepted_sockfds_; /* to receive messages */
 

@@ -4,9 +4,8 @@ void Client::initSockConfigs(int client_id, const std::vector<std::pair<std::str
     std::printf("[Client %d] Init socket configurations.\n", client_id);
     client_id_ = client_id;
     ip_port_pairs_ = ip_port_pairs;
-    listen_sockfds_ = std::vector<int>(ip_port_pairs.size(), -1);
     connect_sockfds_ = std::vector<int>(ip_port_pairs.size(), -1);
-    accepted_sockfds_ = std::vector<int>(ip_port_pairs.size(), -1);
+    accepted_sockfds_ = std::vector<int>{};
 }
 
 void Client::start() {
@@ -54,42 +53,38 @@ int Client::process(const std::string& str) {
 void Client::masterThreadFunc() {
     // Set up epoll
     epoll_fd_ = epoll_create1(0);
-    for (int i = 0; i < ip_port_pairs_.size(); i++) {
-        if (i == client_id_) {
-            continue;
-        }
-        struct sockaddr_in servaddr;
-        servaddr.sin_family = AF_INET;
-        servaddr.sin_port = htons(ip_port_pairs_[i].second);
-        inet_pton(AF_INET, ip_port_pairs_[i].first.c_str(), &(servaddr.sin_addr));
 
-        // Create socket for passive listening
-        int listen_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (listen_sockfd < 0) {
-            // Handle error
-            continue;
-        }
+    struct sockaddr_in servaddr;
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(ip_port_pairs_[client_id_].second);
+    inet_pton(AF_INET, ip_port_pairs_[client_id_].first.c_str(), &(servaddr.sin_addr));
 
-        if (bind(listen_sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
-            // Handle error
-            close(listen_sockfd);
-            continue;
-        }
-
-        if (listen(listen_sockfd, 3) < 0) {
-            // Handle error
-            close(listen_sockfd);
-            continue;
-        }
-
-        // Add listen_sockfd to epoll for passive listening
-        struct epoll_event ev;
-        ev.events = EPOLLIN;
-        ev.data.fd = listen_sockfd;
-        epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, listen_sockfd, &ev);
-        listen_sockfds_[i] = listen_sockfd;
-        std::printf("[Client %d] Listen socket on client %d with ip %s, port %d.\n", client_id_, i, ip_port_pairs_[i].first.c_str(), ip_port_pairs_[i].second);
+    // Create socket for passive listening
+    int listen_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (listen_sockfd < 0) {
+        // Handle error
+        std::printf("[ERROR][Client %d][Client::masterThreadFunc] Fail to create socket.\n", client_id_);
     }
+
+    if (bind(listen_sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+        // Handle error
+        close(listen_sockfd);
+        std::printf("[ERROR][Client %d][Client::masterThreadFunc] Fail to bind to ip %s, port %d.\n", client_id_, ip_port_pairs_[client_id_].first.c_str(), ip_port_pairs_[client_id_].second);
+    }
+
+    if (listen(listen_sockfd, 3) < 0) {
+        // Handle error
+        close(listen_sockfd);
+        std::printf("[ERROR][Client %d][Client::masterThreadFunc] Fail to listen to ip %s, port %d.\n", client_id_, ip_port_pairs_[client_id_].first.c_str(), ip_port_pairs_[client_id_].second);
+    }
+
+    // Add listen_sockfd to epoll for passive listening
+    struct epoll_event ev;
+    ev.events = EPOLLIN;
+    ev.data.fd = listen_sockfd;
+    epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, listen_sockfd, &ev);
+    listen_sockfd_ = listen_sockfd;
+    std::printf("[Client %d] Listen socket on ip %s, port %d.\n", client_id_, ip_port_pairs_[client_id_].first.c_str(), ip_port_pairs_[client_id_].second);
 
     for (int i = 0; i < ip_port_pairs_.size(); i++) {
         if (i == client_id_) {
@@ -127,8 +122,7 @@ void Client::masterThreadFunc() {
         struct epoll_event events[10];
         int nfds = epoll_wait(epoll_fd_, events, 10, -1);
         for (int i = 0; i < nfds; ++i) {
-            auto itr = listen_sockfds_.end();
-            if ((itr = std::find(listen_sockfds_.begin(), listen_sockfds_.end(), events[i].data.fd)) != listen_sockfds_.end()) {
+            if (events[i].data.fd == listen_sockfd_) {
                 // Accept new connection
                 int client_sock = accept(events[i].data.fd, nullptr, nullptr);
                 if (client_sock >= 0) {
@@ -138,11 +132,8 @@ void Client::masterThreadFunc() {
                     client_ev.data.fd = client_sock;
                     epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_sock, &client_ev);
                 }
-                int id = itr - listen_sockfds_.begin();
-                accepted_sockfds_[id] = client_sock;
-                close(*itr);
-                *itr = -1;
-                std::printf("[Client %d] Accept socket on client %d with ip %s, port %d.\n", client_id_, id, ip_port_pairs_[id].first.c_str(), ip_port_pairs_[id].second);
+                accepted_sockfds_.push_back(client_sock);
+                std::printf("[Client %d] Accept socket %zu.\n", client_id_, accepted_sockfds_.size());
             } else {
                 // Handle client socket
                 handleClient(events[i].data.fd);
@@ -151,9 +142,7 @@ void Client::masterThreadFunc() {
     }
     
     // Close all sockets
-    for (int sockfd : listen_sockfds_) {
-        if (sockfd != -1) close(sockfd);
-    }
+    if (listen_sockfd_ != -1) close(listen_sockfd_);
     for (int sockfd : connect_sockfds_) {
         if (sockfd != -1) close(sockfd);
     }
@@ -177,15 +166,6 @@ void Client::handleClient(int client_sock) {
         }
         // Handle error or disconnection
     });
-
-    // Print where this message come from.
-    auto itr = accepted_sockfds_.end();
-    if ((itr = std::find(accepted_sockfds_.begin(), accepted_sockfds_.end(), client_sock)) != accepted_sockfds_.end()) {
-        int id = itr - accepted_sockfds_.begin();
-        std::printf("[Client %d] Receive message from client %d with ip %s, port %d.\n", client_id_, id, ip_port_pairs_[id].first.c_str(), ip_port_pairs_[id].second);
-    } else {
-        std::printf("[Client %d] Receive message from unknown client.\n", client_id_);
-    }
     lock.unlock();
     cond_var_.notify_one();
 }
