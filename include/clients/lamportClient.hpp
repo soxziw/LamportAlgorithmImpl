@@ -102,16 +102,16 @@ public:
     }
 
     /**
-     * getFinishs() - get finishes_.
+     * getFinishes() - get finishes_.
      */
-    std::vector<bool>& getFinishs() {
+    std::vector<bool>& getFinishes() {
         return finishes_;
     }
 
     /**
-     * getFinishsMutex() - get finishes_mutex_.
+     * getFinishesMutex() - get finishes_mutex_.
      */
-    std::mutex& getFinishsMutex() {
+    std::mutex& getFinishesMutex() {
         return finishes_mutex_;
     }
 

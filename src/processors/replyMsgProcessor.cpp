@@ -30,7 +30,7 @@ int ReplyMsgProcessor::process(std::unique_ptr<Msg>&& msg) {
 
     // Lock transfer priority queue mutex
     std::unique_lock<std::mutex> transfer_pq_lock(lamport_client_ptr->getTransferPqMutex());
-    if (lamport_client_ptr->getTransferPq().top().client_id == lamport_client_ptr->getClientId()) { // Transfer of current client is in highest priority
+    if ((!lamport_client_ptr->getTransferPq().empty()) && (lamport_client_ptr->getTransferPq().top().client_id == lamport_client_ptr->getClientId())) { // Transfer of current client is in highest priority
         // Implement transfer and update result
         transfer(lamport_client_ptr, true);
         transfer_pq_lock.unlock(); // Unlock transfer priority queue mutex

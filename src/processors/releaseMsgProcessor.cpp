@@ -19,7 +19,7 @@ int ReleaseMsgProcessor::process(std::unique_ptr<Msg>&& msg){
 
     // Lock transfer priority queue mutex of releasing 
     std::unique_lock<std::mutex> transfer_pq_lock_release(lamport_client_ptr->getTransferPqMutex());
-    if (lamport_client_ptr->getTransferPq().top().client_id == msg_ptr->client_id) { // Double check release transfer is in highest priority
+    if ((!lamport_client_ptr->getTransferPq().empty()) && (lamport_client_ptr->getTransferPq().top().client_id == msg_ptr->client_id)) { // Double check release transfer is in highest priority
         // Implement transfer but not update result
         transfer(lamport_client_ptr, false);
         transfer_pq_lock_release.unlock(); // Unlock transfer priority queue mutex of aligning
@@ -45,7 +45,6 @@ int ReleaseMsgProcessor::process(std::unique_ptr<Msg>&& msg){
 
     // Lock replys vector mutex
     std::unique_lock<std::mutex> replys_lock(lamport_client_ptr->getReplysMutex());
-    lamport_client_ptr->getReplys()[msg_ptr->client_id - 1] = true; // Reply client is true
     for (int i = 0; i < lamport_client_ptr->getReplys().size(); i++) {
         if (!lamport_client_ptr->getReplys()[i]) { // Not all reply
             replys_lock.unlock(); // Unlock replys vector mutex
@@ -56,7 +55,7 @@ int ReleaseMsgProcessor::process(std::unique_ptr<Msg>&& msg){
 
     // Lock transfer priority queue mutex for new transfer
     std::unique_lock<std::mutex> transfer_pq_lock(lamport_client_ptr->getTransferPqMutex());
-    if (lamport_client_ptr->getTransferPq().top().client_id == lamport_client_ptr->getClientId()) { // Transfer of current client is in highest priority 
+    if ((!lamport_client_ptr->getTransferPq().empty()) && (lamport_client_ptr->getTransferPq().top().client_id == lamport_client_ptr->getClientId())) { // Transfer of current client is in highest priority 
         // Implement tranfer and update result
         transfer(lamport_client_ptr, true);
         transfer_pq_lock.unlock(); // Unlock transfer priority queue mutex for trigger new transfer

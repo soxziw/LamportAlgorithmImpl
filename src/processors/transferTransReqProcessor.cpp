@@ -32,9 +32,9 @@ int TransferTransReqProcessor::process(std::unique_ptr<Msg>&& msg){
     replys_lock.unlock(); // Unlock replys vector mutex
 
     // Lock finishes vector mutex
-    std::unique_lock<std::mutex> finishes_lock(lamport_client_ptr->getFinishsMutex());
-    lamport_client_ptr->getFinishs() = std::vector<bool>(lamport_client_ptr->getBalanceTb().size(), true);
-    lamport_client_ptr->getFinishs()[lamport_client_ptr->getClientId() - 1] = true; // Current client is true
+    std::unique_lock<std::mutex> finishes_lock(lamport_client_ptr->getFinishesMutex());
+    lamport_client_ptr->getFinishes() = std::vector<bool>(lamport_client_ptr->getBalanceTb().size(), true);
+    lamport_client_ptr->getFinishes()[lamport_client_ptr->getClientId() - 1] = true; // Current client is true
     finishes_lock.unlock(); // Unlock finishes vector mutex
 
     for (int i = 1; i < lamport_client_ptr->getConnectSockfds().size(); i++) {

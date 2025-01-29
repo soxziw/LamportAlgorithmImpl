@@ -17,7 +17,7 @@ int getLamportClock(std::shared_ptr<LamportClient>& lamport_client_ptr) {
 }
 
 void transfer(std::shared_ptr<LamportClient>& lamport_client_ptr, bool update_transfer_result) {
-    Transfer transfer = lamport_client_ptr->getTransferPq().top();
+    Transfer transfer = lamport_client_ptr->getTransferPq().top(); // Transfer priority queue is ensured not empty
     lamport_client_ptr->getTransferPq().pop();
     if (lamport_client_ptr->getBalanceTb()[transfer.sender_id - 1] >= transfer.amount) { // Success, could transfer
         std::printf("[Client %d] client %d pays client %d $%d: SUCCESS\n", lamport_client_ptr->getClientId(), transfer.sender_id, transfer.receiver_id, transfer.amount);

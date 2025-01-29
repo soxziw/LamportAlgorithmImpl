@@ -18,10 +18,10 @@ int FinishMsgProcessor::process(std::unique_ptr<Msg>&& msg){
     updateLamportClock(lamport_client_ptr, msg_ptr->lamport_clock);
 
     // Lock finishes vector mutex
-    std::unique_lock<std::mutex> finishes_lock(lamport_client_ptr->getFinishsMutex());
-    lamport_client_ptr->getFinishs()[msg_ptr->client_id - 1] = true; // Finish client is true
-    for (int i = 0; i < lamport_client_ptr->getFinishs().size(); i++) {
-        if (!lamport_client_ptr->getFinishs()[i]) { // Not all finish
+    std::unique_lock<std::mutex> finishes_lock(lamport_client_ptr->getFinishesMutex());
+    lamport_client_ptr->getFinishes()[msg_ptr->client_id - 1] = true; // Finish client is true
+    for (int i = 0; i < lamport_client_ptr->getFinishes().size(); i++) {
+        if (!lamport_client_ptr->getFinishes()[i]) { // Not all finish
             finishes_lock.unlock(); // Unlock finishes vector mutex
             return 0;
         }
