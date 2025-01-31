@@ -11,6 +11,14 @@ struct Msg {
 };
 
 /**
+ * ExitMsg - exit and stop client.
+ */
+struct ExitMsg : public Msg {
+    ExitMsg()
+    : Msg() {}
+};
+
+/**
  * TransferTransReq - request of transfer transaction.
  *
  * - sender_id: sender's id.

@@ -48,6 +48,8 @@ void cmd(std::shared_ptr<InterfaceClient> interface_client_ptr) {
                 while (std::getchar() != '\n');
             }
         } else if (std::strcmp(command, "exit") == 0) {
+            interface_client_ptr->sendExitMsg();
+            interface_client_ptr->exit();
             break;
         } else {
             std::printf("\033[31m[Error] Unknown command.\033[0m\n");
@@ -71,11 +73,12 @@ int main(int argc, char* argv[]) {
     // Create lamport clients with ids 1, 2, 3 in child processes
     std::printf("[Init] Creating lamport clients with ids 1, 2, 3 in child processes.\n");
     std::vector<pid_t> lamport_pids;
-    for (int i = 1; i <= 3; i++) {
+    for (int i = 1; i < _ip_port_pairs.size(); i++) {
         pid_t pid = fork();
         if (pid == 0) {
             auto lamport_client_ptr = LamportClient::getInstance();
             lamport_client_ptr->init(i, _balance_tb, _ip_port_pairs);
+            return 0;
         }
         lamport_pids.push_back(pid);
     }
@@ -88,15 +91,9 @@ int main(int argc, char* argv[]) {
     // Input for interface client
     cmd(interface_client_ptr);
 
-    // Stop all clients
-    interface_client_ptr->terminate();
-    for (pid_t pid : lamport_pids) {
-        kill(pid, SIGINT);
-    }
-
     // Wait for all child processes to finish
     for (pid_t pid : lamport_pids) {
         waitpid(pid, nullptr, 0);
     }
-    return 0;
+    exit(0);
 }

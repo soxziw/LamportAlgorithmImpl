@@ -11,7 +11,6 @@ int TransferTransReqProcessor::process(std::unique_ptr<Msg>&& msg){
     TransferTransReq* msg_raw = dynamic_cast<TransferTransReq*>(msg.get());
     if (!msg_raw) { // Could not cast
         std::printf("\033[31m[Error][TransferTransReqProcessor::process][Client %d] message does not fit in TransferTransReq.\033[0m\n", lamport_client_ptr->client_id_);
-        throw std::bad_cast();
     }
     std::unique_ptr<TransferTransReq> msg_ptr(static_cast<TransferTransReq*>(msg.release()));
     std::printf("[Client %d] Receive TransferTransReq from client 0: %d pays %d $%d.\n", lamport_client_ptr->client_id_, msg_ptr->sender_id, msg_ptr->receiver_id, msg_ptr->amount);

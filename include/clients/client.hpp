@@ -76,11 +76,18 @@ public:
      */
     void workerThreadFunc();
 
+    /**
+     * addToEpoll() - add fd to epoll.
+     */
+    void addToEpoll(int fd);
+
     ParserFactory parser_factory_; /* factory of parser */
     ProcessorFactory processor_factory_; /* factory of processor */
 
     int client_id_;
     bool keep_running_; /* to terminate master and worker threads */
+    int exit_eventfd_; /* to activate epoll to exit */
+
     std::vector<std::pair<std::string, int>> ip_port_pairs_;
     int listen_sockfd_; /* to build up socket connections */
     std::vector<int> connect_sockfds_; /* to send messages */

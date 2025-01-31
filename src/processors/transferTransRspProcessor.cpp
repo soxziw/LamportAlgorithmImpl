@@ -7,7 +7,6 @@ int TransferTransRspProcessor::process(std::unique_ptr<Msg>&& msg){
     TransferTransRsp* msg_raw = dynamic_cast<TransferTransRsp*>(msg.get());
     if (!msg_raw) { // Could not cast
         std::printf("\033[31m[Error][TransferTransRspProcessor::process][Client %d] message does not fit in TransferTransRsp.\033[0m\n", interface_client_ptr->client_id_);
-        throw std::bad_cast();
     }
     std::unique_ptr<TransferTransRsp> msg_ptr(static_cast<TransferTransRsp*>(msg.release()));
     std::printf("[Client %d] Receive TransferTransRsp from client %d.\n", interface_client_ptr->client_id_, msg_ptr->client_id);

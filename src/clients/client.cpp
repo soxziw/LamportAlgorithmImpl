@@ -1,4 +1,5 @@
 #include "clients/client.hpp"
+#include <sys/eventfd.h>
 
 void Client::initSockConfigs(int client_id, const std::vector<std::pair<std::string, int>>& ip_port_pairs) {
     std::printf("[Client %d] Init socket configurations.\n", client_id);
@@ -21,28 +22,30 @@ void Client::stop() {
     std::printf("[Client %d] Stop processing.\n", client_id_);
     keep_running_ = false;
 
+    cond_var_.notify_all();
 
-    
-    // Close all sockets
-    if (listen_sockfd_ != -1) close(listen_sockfd_);
-    for (int sockfd : connect_sockfds_) {
-        if (sockfd != -1) close(sockfd);
-    }
-    for (int sockfd : accepted_sockfds_) {
-        if (sockfd != -1) close(sockfd);
-    }
-
-    cond_var_.notify_one();
     // Join worker threads
     for (auto& worker : worker_threads_) {
         if (worker.joinable()) {
             worker.join();
         }
     }
-
-    // Join master thread
-    if (master_thread_.joinable()) {
-        master_thread_.join();
+    
+    // Close all fds
+    if (exit_eventfd_ != -1) {
+        close(exit_eventfd_);
+    }
+    if (epoll_fd_ != -1) {
+        close(epoll_fd_);
+    }
+    if (listen_sockfd_ != -1) {
+        close(listen_sockfd_);
+    }
+    for (int sockfd : connect_sockfds_) {
+        if (sockfd != -1) close(sockfd);
+    }
+    for (int sockfd : accepted_sockfds_) {
+        if (sockfd != -1) close(sockfd);
     }
 }
 
@@ -78,36 +81,36 @@ void Client::masterThreadFunc() {
     // Set up epoll
     epoll_fd_ = epoll_create1(0);
 
+    // Add exit_eventfd_ to epoll for exit
+    exit_eventfd_ = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    addToEpoll(exit_eventfd_);
+
     struct sockaddr_in servaddr;
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(ip_port_pairs_[client_id_].second);
     inet_pton(AF_INET, ip_port_pairs_[client_id_].first.c_str(), &(servaddr.sin_addr));
 
     // Create socket for passive listening
-    int listen_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (listen_sockfd < 0) {
+    listen_sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
+    if (listen_sockfd_ < 0) {
         // Handle error
         std::printf("\033[31m[Error][Client %d][Client::masterThreadFunc] Fail to create socket.\033[0m\n", client_id_);
     }
 
-    if (bind(listen_sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+    if (bind(listen_sockfd_, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
         // Handle error
-        close(listen_sockfd);
+        close(listen_sockfd_);
         std::printf("\033[31m[Error][Client %d][Client::masterThreadFunc] Fail to bind to %s:%d.\033[0m\n", client_id_, ip_port_pairs_[client_id_].first.c_str(), ip_port_pairs_[client_id_].second);
     }
 
-    if (listen(listen_sockfd, 3) < 0) {
+    if (listen(listen_sockfd_, 3) < 0) {
         // Handle error
-        close(listen_sockfd);
+        close(listen_sockfd_);
         std::printf("\033[31m[Error][Client %d][Client::masterThreadFunc] Fail to listen to %s:%d.\033[0m\n", client_id_, ip_port_pairs_[client_id_].first.c_str(), ip_port_pairs_[client_id_].second);
     }
 
-    // Add listen_sockfd to epoll for passive listening
-    struct epoll_event ev;
-    ev.events = EPOLLIN;
-    ev.data.fd = listen_sockfd;
-    epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, listen_sockfd, &ev);
-    listen_sockfd_ = listen_sockfd;
+    // Add listen_sockfd_ to epoll for passive listening
+    addToEpoll(listen_sockfd_);
     std::printf("[Client %d] Listen socket on %s:%d.\n", client_id_, ip_port_pairs_[client_id_].first.c_str(), ip_port_pairs_[client_id_].second);
 
     sleep(3);
@@ -146,38 +149,34 @@ void Client::masterThreadFunc() {
         std::printf("[Client %d] Connect sockets on all %lu clients.\n", client_id_, ip_port_pairs_.size() - 1);
     }
 
-    while (keep_running_) {
+    while (true) {
         struct epoll_event events[10];
         int nfds = epoll_wait(epoll_fd_, events, 10, -1);
-        for (int i = 0; i < nfds; ++i) {
+        for (int i = 0; i < nfds; i++) {
             if (events[i].data.fd == listen_sockfd_) {
                 // Accept new connection
                 int client_sock = accept(events[i].data.fd, nullptr, nullptr);
                 if (client_sock >= 0) {
                     // Add client socket to epoll
-                    struct epoll_event client_ev;
-                    client_ev.events = EPOLLIN;
-                    client_ev.data.fd = client_sock;
-                    epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_sock, &client_ev);
+                    addToEpoll(client_sock);
                 }
                 accepted_sockfds_.push_back(client_sock);
                 if (accepted_sockfds_.size() == ip_port_pairs_.size() - 1) {
                     std::printf("[Client %d] Accept sockets from all %lu clients.\n", client_id_, ip_port_pairs_.size() - 1);
                 }
+            } else if (events[i].data.fd == exit_eventfd_) {
+                uint64_t u;
+                read(exit_eventfd_, &u, sizeof(uint64_t));
+                stop();
+                return;
             } else {
                 // Handle client socket
                 handleClient(events[i].data.fd);
+                if (!keep_running_) {
+                    return;
+                }
             }
         }
-    }
-    
-    // Close all sockets
-    if (listen_sockfd_ != -1) close(listen_sockfd_);
-    for (int sockfd : connect_sockfds_) {
-        if (sockfd != -1) close(sockfd);
-    }
-    for (int sockfd : accepted_sockfds_) {
-        if (sockfd != -1) close(sockfd);
     }
 }
 
@@ -193,6 +192,11 @@ void Client::handleClient(int client_sock) {
         buffer = std::string(temp_buffer); // Assign to std::string
     }
     if (bytes_received > 0) {
+        if (json::parse(buffer).at("type") == "ExitMsg") {
+            lock.unlock();
+            stop();
+            return;
+        }
         task_queue_.emplace([this, buffer] {
             this->process(buffer);
         });
@@ -215,4 +219,11 @@ void Client::workerThreadFunc() {
         // Process task
         task();
     }
+}
+
+void Client::addToEpoll(int fd) {
+    struct epoll_event ev;
+    ev.events = EPOLLIN;
+    ev.data.fd = fd;
+    epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, &ev);
 }

@@ -2,19 +2,6 @@
 #include "parsers/msgParser.hpp"
 #include <csignal>
 
-void sigintLamportHandler(int signum) {
-    // Get lamport client instance
-    auto lamport_client_ptr = LamportClient::getInstance();
-    
-    // Stop lamport client
-    if (lamport_client_ptr) {
-        lamport_client_ptr->terminate();
-    }
-    
-    // Exit the program
-    exit(signum);
-}
-
 void LamportClient::init(int client_id, const std::vector<int> balance_tb, const std::vector<std::pair<std::string, int>>& ip_port_pairs) {
     initSockConfigs(client_id, ip_port_pairs);
 
@@ -48,11 +35,10 @@ void LamportClient::init(int client_id, const std::vector<int> balance_tb, const
 
     start();
 
-    // Register SIGINT handler
-    std::printf("[Client %d] Register SIGINT handler: sigintLamportHandler().\n", client_id);
-    signal(SIGINT, sigintLamportHandler);
 
-    pause(); // Wait indefinitely until a signal is received
+    if (master_thread_.joinable()) {
+        master_thread_.join();
+    }
 }
 
 std::shared_ptr<LamportClient> LamportClient::getInstance() {
@@ -61,11 +47,6 @@ std::shared_ptr<LamportClient> LamportClient::getInstance() {
         client_ptr = std::make_shared<LamportClient>();
     }
     return client_ptr;
-}
-
-void LamportClient::terminate() {
-    // Stop master and worker threads
-    stop();
 }
 
 int LamportClient::updateLamportClock(int remote_lamport_clock) {

@@ -7,7 +7,6 @@ std::string TransferTransReqParser::stringify(std::unique_ptr<Msg>&& msg) {
     TransferTransReq* msg_raw = dynamic_cast<TransferTransReq*>(msg.get());
     if (!msg_raw) { // Could not cast
         std::printf("\033[31m[Error][TransferTransReqParser::stringify][Client %d] message does not fit in TransferTransReq.\033[0m\n", InterfaceClient::getInstance()->client_id_);
-        throw std::bad_cast();
     }
     std::unique_ptr<TransferTransReq> msg_ptr(static_cast<TransferTransReq*>(msg.release()));
 
@@ -23,13 +22,7 @@ std::string TransferTransReqParser::stringify(std::unique_ptr<Msg>&& msg) {
 
 std::unique_ptr<Msg> TransferTransReqParser::parse(const std::string& str) {
     // std::printf("[Client %d] Parse TransferTransReq.\n", LamportClient::getInstance()->client_id_);
-    try {
-        // Parse the JSON string into a JSON object
-        json msg_json = json::parse(str);
-        return std::make_unique<TransferTransReq>(msg_json["sender_id"].get<int>(), msg_json["receiver_id"].get<int>(), msg_json["amount"].get<int>(), msg_json["client_id"].get<int>());
-    } catch (const json::parse_error& e) {
-        // Handle parse error and return an empty JSON object
-        std::printf("\033[31m[Error][TransferTransReqParser::parse][Client %d] Parse error in TransferTransReq: %s.\033[0m\n", LamportClient::getInstance()->client_id_, str.c_str());
-        return nullptr;
-    }
+    // Parse the JSON string into a JSON object
+    json msg_json = json::parse(str);
+    return std::make_unique<TransferTransReq>(msg_json["sender_id"].get<int>(), msg_json["receiver_id"].get<int>(), msg_json["amount"].get<int>(), msg_json["client_id"].get<int>());
 }

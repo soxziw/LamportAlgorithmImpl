@@ -10,6 +10,7 @@
 #include "parsers/replyMsgParser.hpp"
 #include "parsers/releaseMsgParser.hpp"
 #include "parsers/finishMsgParser.hpp"
+#include "parsers/exitMsgParser.hpp"
 
 /**
  * ParserFactory - factory of parsers.
@@ -36,7 +37,8 @@ public:
             return registry[name]();
         } else {
             std::printf("\033[31m[Error][ParserFactory::createParser] Unknown parser type: %s.\033[0m\n", name.c_str());
-            throw std::runtime_error("[Error] Unknown parser type: " + name);
+            // Instead of throwing an exception, return a nullptr to allow graceful error handling
+            return nullptr;
         }
     }
 

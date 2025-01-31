@@ -8,7 +8,6 @@ int ReleaseMsgProcessor::process(std::unique_ptr<Msg>&& msg){
     ReleaseMsg* msg_raw = dynamic_cast<ReleaseMsg*>(msg.get());
     if (!msg_raw) { // Could not cast
         std::printf("\033[31m[Error][ReleaseMsgProcessor::process][Client %d] message does not fit in ReleaseMsg.\033[0m\n", lamport_client_ptr->client_id_);
-        throw std::bad_cast();
     }
     std::unique_ptr<ReleaseMsg> msg_ptr(static_cast<ReleaseMsg*>(msg.release()));
     

@@ -26,9 +26,14 @@ public:
     static std::shared_ptr<InterfaceClient> getInstance();
 
     /**
-     * terminate() - terminate interface client.
+     * exit() - exit interface client.
      */
-    void terminate();
+    void exit();
+
+    /**
+     * sendExitMsg() - send exit messages to all other clients.
+     */
+    int sendExitMsg();
 
     /**
      * sendTransferTransReq() - send request of transfer transaction.

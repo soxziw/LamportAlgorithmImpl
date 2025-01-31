@@ -36,7 +36,7 @@ public:
             return registry[name]();
         } else {
             std::printf("\033[31m[Error][ProcessorFactory::createProcessor] Unknown processor type: %s.\033[0m\n", name.c_str());
-            throw std::runtime_error("[Error] Unknown processor type: " + name);
+            return nullptr;
         }
     }
 

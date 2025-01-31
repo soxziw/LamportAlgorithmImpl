@@ -55,11 +55,6 @@ public:
     static std::shared_ptr<LamportClient> getInstance();
 
     /**
-     * terminate() - terminate lamport client.
-     */
-    void terminate();
-
-    /**
     * updateLamportClock() - merge local lamport clock with remote lamport clock on receiving message.
     *
     * @param remote_lamport_clock

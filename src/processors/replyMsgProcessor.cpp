@@ -8,7 +8,6 @@ int ReplyMsgProcessor::process(std::unique_ptr<Msg>&& msg) {
     ReplyMsg* msg_raw = dynamic_cast<ReplyMsg*>(msg.get());
     if (!msg_raw) { // Could not cast
         std::printf("\033[31m[Error][ReplyMsgProcessor::process][Client %d] message does not fit in ReplyMsg.\033[0m\n", lamport_client_ptr->client_id_);
-        throw std::bad_cast();
     }
     std::unique_ptr<ReplyMsg> msg_ptr(static_cast<ReplyMsg*>(msg.release()));
     
