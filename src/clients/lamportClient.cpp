@@ -68,18 +68,20 @@ void LamportClient::terminate() {
     stop();
 }
 
-void LamportClient::updateLamportClock(int remote_lamport_clock) {
+int LamportClient::updateLamportClock(int remote_lamport_clock) {
     // Lock lamport clock mutex of receiving
     std::unique_lock<std::mutex> lamport_clock_lock_receive(lamport_clock_mutex_);
     lamport_clock_ = std::max(lamport_clock_, remote_lamport_clock) + 1; // Lamport clock = max + 1
+    int local_lamport_clock = lamport_clock_;
     lamport_clock_mutex_.unlock(); // Unlock lamport clock mutex of receiving
+    return local_lamport_clock;
 }
 
 int LamportClient::getLamportClock() {
     // Lock lamport clock mutex of sending
     std::unique_lock<std::mutex> lamport_clock_lock_send(lamport_clock_mutex_);
-    int local_lamport_clock = lamport_clock_;
     lamport_clock_++; // Lamport clock++
+    int local_lamport_clock = lamport_clock_;
     lamport_clock_mutex_.unlock(); // Unlock lamport clock mutex of sending
     return local_lamport_clock;
 }

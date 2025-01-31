@@ -3,18 +3,18 @@
 
 int ReleaseMsgProcessor::process(std::unique_ptr<Msg>&& msg){
     auto lamport_client_ptr = LamportClient::getInstance();
-
-    std::printf("[Client %d] Process ReleaseMsg.\n", lamport_client_ptr->client_id_);
+    int local_lamport_clock = -1;
 
     ReleaseMsg* msg_raw = dynamic_cast<ReleaseMsg*>(msg.get());
     if (!msg_raw) { // Could not cast
-        std::printf("[ERROR][ReleaseMsgProcessor::process][Client %d] message does not fit in ReleaseMsg.\n", lamport_client_ptr->client_id_);
+        std::printf("\033[31m[Error][ReleaseMsgProcessor::process][Client %d] message does not fit in ReleaseMsg.\033[0m\n", lamport_client_ptr->client_id_);
         throw std::bad_cast();
     }
     std::unique_ptr<ReleaseMsg> msg_ptr(static_cast<ReleaseMsg*>(msg.release()));
     
     // Update lamport clock by merging remote one
-    lamport_client_ptr->updateLamportClock(msg_ptr->lamport_clock);
+    local_lamport_clock = lamport_client_ptr->updateLamportClock(msg_ptr->lamport_clock);
+    std::printf("[Client %d][lamport_clock %d] Receive ReleaseMsg from client %d.\n", lamport_client_ptr->client_id_, local_lamport_clock, msg_ptr->client_id);
 
     // Lock transfer priority queue mutex of releasing 
     std::unique_lock<std::mutex> transfer_pq_lock_release(lamport_client_ptr->transfer_pq_mutex_);
@@ -24,7 +24,7 @@ int ReleaseMsgProcessor::process(std::unique_ptr<Msg>&& msg){
         transfer_pq_lock_release.unlock(); // Unlock transfer priority queue mutex of aligning
 
         // Get lamport clock
-        int local_lamport_clock = lamport_client_ptr->getLamportClock();
+        local_lamport_clock = lamport_client_ptr->getLamportClock();
 
         // Generate FinishMsg
         std::unique_ptr<FinishMsg> finish_msg_ptr = std::make_unique<FinishMsg>(local_lamport_clock, lamport_client_ptr->client_id_);
@@ -38,7 +38,7 @@ int ReleaseMsgProcessor::process(std::unique_ptr<Msg>&& msg){
         lamport_client_ptr->sendMsg(msg_ptr->client_id, str);
     } else {
         // ERROR
-        std::printf("[ERROR][ReleaseMsgProcessor::process][Client %d] Release transfer(client %d) is not on the top(client %d).\n", lamport_client_ptr->client_id_, msg_ptr->client_id, lamport_client_ptr->transfer_pq_.top().client_id);
+        std::printf("\033[31m[Error][ReleaseMsgProcessor::process][Client %d] Release transfer(client %d) is not on the top(client %d).\033[0m\n", lamport_client_ptr->client_id_, msg_ptr->client_id, lamport_client_ptr->transfer_pq_.top().client_id);
         transfer_pq_lock_release.unlock(); // Unlock transfer priority queue mutex of aligning
     }
 
@@ -60,7 +60,7 @@ int ReleaseMsgProcessor::process(std::unique_ptr<Msg>&& msg){
         transfer_pq_lock.unlock(); // Unlock transfer priority queue mutex for trigger new transfer
 
         // Get lamport clock
-        int local_lamport_clock = lamport_client_ptr->getLamportClock();
+        local_lamport_clock = lamport_client_ptr->getLamportClock();
 
         for (int i = 1; i < lamport_client_ptr->connect_sockfds_.size(); i++) {
             if (i == lamport_client_ptr->client_id_) {

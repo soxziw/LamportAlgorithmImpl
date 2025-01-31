@@ -3,18 +3,18 @@
 
 int FinishMsgProcessor::process(std::unique_ptr<Msg>&& msg){
     auto lamport_client_ptr = LamportClient::getInstance();
-
-    std::printf("[Client %d] Process FinishMsg.\n", lamport_client_ptr->client_id_);
+    int local_lamport_clock = -1;
 
     FinishMsg* msg_raw = dynamic_cast<FinishMsg*>(msg.get());
     if (!msg_raw) { // Could not cast
-        std::printf("[ERROR][FinishMsgProcessor::process][Client %d] message does not fit in FinishMsg.\n", lamport_client_ptr->client_id_);
+        std::printf("\033[31m[Error][FinishMsgProcessor::process][Client %d] message does not fit in FinishMsg.\033[0m\n", lamport_client_ptr->client_id_);
         throw std::bad_cast();
     }
     std::unique_ptr<FinishMsg> msg_ptr(static_cast<FinishMsg*>(msg.release()));
 
     // Update lamport clock by merging remote one
-    lamport_client_ptr->updateLamportClock(msg_ptr->lamport_clock);
+    local_lamport_clock = lamport_client_ptr->updateLamportClock(msg_ptr->lamport_clock);
+    std::printf("[Client %d][lamport_clock %d] Receive FinishMsg from client %d.\n", lamport_client_ptr->client_id_, local_lamport_clock, msg_ptr->client_id);
 
     // Lock finishes vector mutex
     std::unique_lock<std::mutex> finishes_lock(lamport_client_ptr->finishes_mutex_);

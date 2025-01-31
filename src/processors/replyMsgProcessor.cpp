@@ -3,18 +3,18 @@
 
 int ReplyMsgProcessor::process(std::unique_ptr<Msg>&& msg) {
     auto lamport_client_ptr = LamportClient::getInstance();
-
-    std::printf("[Client %d] Process ReplyMsg.\n", lamport_client_ptr->client_id_);
+    int local_lamport_clock = -1;
 
     ReplyMsg* msg_raw = dynamic_cast<ReplyMsg*>(msg.get());
     if (!msg_raw) { // Could not cast
-        std::printf("[ERROR][ReplyMsgProcessor::process][Client %d] message does not fit in ReplyMsg.\n", lamport_client_ptr->client_id_);
+        std::printf("\033[31m[Error][ReplyMsgProcessor::process][Client %d] message does not fit in ReplyMsg.\033[0m\n", lamport_client_ptr->client_id_);
         throw std::bad_cast();
     }
     std::unique_ptr<ReplyMsg> msg_ptr(static_cast<ReplyMsg*>(msg.release()));
     
     // Update lamport clock by merging remote one
-    lamport_client_ptr->updateLamportClock(msg_ptr->lamport_clock);
+    local_lamport_clock = lamport_client_ptr->updateLamportClock(msg_ptr->lamport_clock);
+    std::printf("[Client %d][lamport_clock %d] Receive ReplyMsg from client %d.\n", lamport_client_ptr->client_id_, local_lamport_clock, msg_ptr->client_id);
 
     // Lock replys vector mutex
     std::unique_lock<std::mutex> replys_lock(lamport_client_ptr->replys_mutex_);
@@ -35,7 +35,7 @@ int ReplyMsgProcessor::process(std::unique_ptr<Msg>&& msg) {
         transfer_pq_lock.unlock(); // Unlock transfer priority queue mutex
 
         // Get lamport clock
-        int local_lamport_clock = lamport_client_ptr->getLamportClock();
+        local_lamport_clock = lamport_client_ptr->getLamportClock();
 
         for (int i = 1; i < lamport_client_ptr->connect_sockfds_.size(); i++) {
             if (i == lamport_client_ptr->client_id_) {

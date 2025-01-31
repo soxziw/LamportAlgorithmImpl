@@ -21,6 +21,18 @@ void Client::stop() {
     std::printf("[Client %d] Stop processing.\n", client_id_);
     keep_running_ = false;
 
+
+    
+    // Close all sockets
+    if (listen_sockfd_ != -1) close(listen_sockfd_);
+    for (int sockfd : connect_sockfds_) {
+        if (sockfd != -1) close(sockfd);
+    }
+    for (int sockfd : accepted_sockfds_) {
+        if (sockfd != -1) close(sockfd);
+    }
+
+    cond_var_.notify_one();
     // Join worker threads
     for (auto& worker : worker_threads_) {
         if (worker.joinable()) {
@@ -38,11 +50,12 @@ void Client::sendMsg(int target_client_id, std::string& str) {
     // Send message
     if (connect_sockfds_[target_client_id] == -1) {
         // ERROR not connected
-        std::printf("[ERROR][Client %d] Socket connection to client %d not set up.\n", client_id_, target_client_id);
+        std::printf("\033[31m[Error][Client %d] Socket connection to client %d not set up.\033[0m\n", client_id_, target_client_id);
     }
+    sleep(3);
     if (send(connect_sockfds_[target_client_id], str.c_str(), str.size(), 0) < 0) {
         // ERROR
-        std::printf("[ERROR][Client %d] Send RequestMsg to client %d fail, data: %s.\n", client_id_, target_client_id, str.c_str());
+        std::printf("\033[31m[Error][Client %d] Send RequestMsg to client %d fail, data: %s.\033[0m\n", client_id_, target_client_id, str.c_str());
     }
 }
 
@@ -53,7 +66,6 @@ int Client::process(const std::string& str) {
     std::unique_ptr<Msg> msg = parser->parse(str);
 
     // Process message based on its type
-    std::printf("[Client %d] Processing %s, data: %s.\n", client_id_, type.c_str(), str.c_str());
     auto processor = processor_factory_.createProcessor(type);
     int result;
     if ((result = processor->process(std::move(msg))) != 0) {
@@ -75,19 +87,19 @@ void Client::masterThreadFunc() {
     int listen_sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_sockfd < 0) {
         // Handle error
-        std::printf("[ERROR][Client %d][Client::masterThreadFunc] Fail to create socket.\n", client_id_);
+        std::printf("\033[31m[Error][Client %d][Client::masterThreadFunc] Fail to create socket.\033[0m\n", client_id_);
     }
 
     if (bind(listen_sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
         // Handle error
         close(listen_sockfd);
-        std::printf("[ERROR][Client %d][Client::masterThreadFunc] Fail to bind to ip %s, port %d.\n", client_id_, ip_port_pairs_[client_id_].first.c_str(), ip_port_pairs_[client_id_].second);
+        std::printf("\033[31m[Error][Client %d][Client::masterThreadFunc] Fail to bind to %s:%d.\033[0m\n", client_id_, ip_port_pairs_[client_id_].first.c_str(), ip_port_pairs_[client_id_].second);
     }
 
     if (listen(listen_sockfd, 3) < 0) {
         // Handle error
         close(listen_sockfd);
-        std::printf("[ERROR][Client %d][Client::masterThreadFunc] Fail to listen to ip %s, port %d.\n", client_id_, ip_port_pairs_[client_id_].first.c_str(), ip_port_pairs_[client_id_].second);
+        std::printf("\033[31m[Error][Client %d][Client::masterThreadFunc] Fail to listen to %s:%d.\033[0m\n", client_id_, ip_port_pairs_[client_id_].first.c_str(), ip_port_pairs_[client_id_].second);
     }
 
     // Add listen_sockfd to epoll for passive listening
@@ -96,8 +108,10 @@ void Client::masterThreadFunc() {
     ev.data.fd = listen_sockfd;
     epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, listen_sockfd, &ev);
     listen_sockfd_ = listen_sockfd;
-    std::printf("[Client %d] Listen socket on ip %s, port %d.\n", client_id_, ip_port_pairs_[client_id_].first.c_str(), ip_port_pairs_[client_id_].second);
+    std::printf("[Client %d] Listen socket on %s:%d.\n", client_id_, ip_port_pairs_[client_id_].first.c_str(), ip_port_pairs_[client_id_].second);
 
+    sleep(3);
+    bool connect_socket_fail = false;
     for (int i = 0; i < ip_port_pairs_.size(); i++) {
         if (i == client_id_) {
             continue;
@@ -112,22 +126,24 @@ void Client::masterThreadFunc() {
         if (connect_sockfd < 0) {
             // Handle error
             close(connect_sockfd);
+            connect_socket_fail = true;
+            std::printf("\033[31m[Error][Client %d] Fail to connect socket on client %d with %s:%d.\033[0m\n", client_id_, i, ip_port_pairs_[i].first.c_str(), ip_port_pairs_[i].second);
             continue;
         }
 
         if (connect(connect_sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
             // Handle error
             close(connect_sockfd);
+            connect_socket_fail = true;
+            std::printf("\033[31m[Error][Client %d] Fail to connect socket on client %d with %s:%d.\033[0m\n", client_id_, i, ip_port_pairs_[i].first.c_str(), ip_port_pairs_[i].second);
             continue;
         }
 
-        // Add connect_sockfd to epoll for active connecting
-        struct epoll_event connect_ev;
-        connect_ev.events = EPOLLIN;
-        connect_ev.data.fd = connect_sockfd;
-        epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, connect_sockfd, &connect_ev);
         connect_sockfds_[i] = connect_sockfd;
-        std::printf("[Client %d] Connect socket on client %d with ip %s, port %d.\n", client_id_, i, ip_port_pairs_[i].first.c_str(), ip_port_pairs_[i].second);
+    }
+
+    if (!connect_socket_fail) {
+        std::printf("[Client %d] Connect sockets on all %lu clients.\n", client_id_, ip_port_pairs_.size() - 1);
     }
 
     while (keep_running_) {
@@ -145,7 +161,9 @@ void Client::masterThreadFunc() {
                     epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_sock, &client_ev);
                 }
                 accepted_sockfds_.push_back(client_sock);
-                std::printf("[Client %d] Accept socket %zu.\n", client_id_, accepted_sockfds_.size());
+                if (accepted_sockfds_.size() == ip_port_pairs_.size() - 1) {
+                    std::printf("[Client %d] Accept sockets from all %lu clients.\n", client_id_, ip_port_pairs_.size() - 1);
+                }
             } else {
                 // Handle client socket
                 handleClient(events[i].data.fd);
@@ -166,26 +184,30 @@ void Client::masterThreadFunc() {
 void Client::handleClient(int client_sock) {
     // Add task to the queue for worker threads
     std::unique_lock<std::mutex> lock(mutex_);
-    task_queue_.emplace([this, client_sock] {
-        std::string buffer; // Use std::string to hold incoming data
-        char temp_buffer[1024]; // Temporary buffer for receiving data
-        ssize_t bytes_received = recv(client_sock, temp_buffer, sizeof(temp_buffer) - 1, 0);
-        if (bytes_received > 0) {
-            temp_buffer[bytes_received] = '\0'; // Null-terminate the received data
-            buffer = std::string(temp_buffer); // Assign to std::string
-            // Process the received data
+
+    std::string buffer; // Use std::string to hold incoming data
+    char temp_buffer[1024]; // Temporary buffer for receiving data
+    int bytes_received = recv(client_sock, temp_buffer, sizeof(temp_buffer) - 1, 0);
+    if (bytes_received > 0) {
+        temp_buffer[bytes_received] = '\0'; // Null-terminate the received data
+        buffer = std::string(temp_buffer); // Assign to std::string
+    }
+    if (bytes_received > 0) {
+        task_queue_.emplace([this, buffer] {
             this->process(buffer);
-        }
-        // Handle error or disconnection
-    });
+        });
+    }
     lock.unlock();
     cond_var_.notify_one();
 }
 
 void Client::workerThreadFunc() {
-    while (keep_running_) {
+    while (true) {
         std::unique_lock<std::mutex> lock(mutex_);
-        cond_var_.wait(lock, [this]{ return !task_queue_.empty(); });
+        cond_var_.wait(lock, [this]{ return !keep_running_ || !task_queue_.empty(); });
+        if (!keep_running_ && task_queue_.empty()) {
+            return;
+        }
         auto task = std::move(task_queue_.front());
         task_queue_.pop();
         lock.unlock();

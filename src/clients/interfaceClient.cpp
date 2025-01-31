@@ -38,7 +38,7 @@ int InterfaceClient::sendTransferTransReq(int client_id, int sender_id, int rece
     std::unique_lock<std::mutex> lock(mutex_);
     task_queue_.emplace([this, client_id, sender_id, receiver_id, amount] {
         // Stringify a TransferTransReq into string
-        std::printf("[Client %d] Send TransferTransReq to client %d. sender_id: %d, receiver_id: %d, amount: %d.\n", client_id_, client_id, sender_id, receiver_id, amount);
+        std::printf("[Client %d] Send TransferTransReq to client %d: %d pays %d $%d.\n", client_id_, client_id, sender_id, receiver_id, amount);
         std::unique_ptr<TransferTransReq> transfer_trans_req_ptr = std::make_unique<TransferTransReq>(sender_id, receiver_id, amount, 0);
         auto parser = this->parser_factory_.createParser("TransferTransReq");
         std::string str = parser->stringify(std::move(transfer_trans_req_ptr));
@@ -64,5 +64,6 @@ int InterfaceClient::sendBalanceTransReq(int client_id) {
     });
     lock.unlock();
     cond_var_.notify_one();
+
     return 0;
 }

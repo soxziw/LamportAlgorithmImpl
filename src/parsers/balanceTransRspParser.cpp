@@ -3,10 +3,10 @@
 #include "clients/lamportClient.hpp"
 
 std::string BalanceTransRspParser::stringify(std::unique_ptr<Msg>&& msg) {
-    std::printf("[Client %d] Stringify BalanceTransRsp.\n", LamportClient::getInstance()->client_id_);
+    // std::printf("[Client %d] Stringify BalanceTransRsp.\n", LamportClient::getInstance()->client_id_);
     BalanceTransRsp* msg_raw = dynamic_cast<BalanceTransRsp*>(msg.get());
     if (!msg_raw) { // Could not cast
-        std::printf("[ERROR][BalanceTransRspParser::stringify][Client %d] message does not fit in BalanceTransRsp.\n", LamportClient::getInstance()->client_id_);
+        std::printf("\033[31m[Error][BalanceTransRspParser::stringify][Client %d] message does not fit in BalanceTransRsp.\033[0m\n", LamportClient::getInstance()->client_id_);
         throw std::bad_cast();
     }
     std::unique_ptr<BalanceTransRsp> msg_ptr(static_cast<BalanceTransRsp*>(msg.release()));
@@ -24,7 +24,7 @@ std::string BalanceTransRspParser::stringify(std::unique_ptr<Msg>&& msg) {
 }
 
 std::unique_ptr<Msg> BalanceTransRspParser::parse(const std::string& str) {
-    std::printf("[Client %d] Parse BalanceTransRsp.\n", InterfaceClient::getInstance()->client_id_);
+    // std::printf("[Client %d] Parse BalanceTransRsp.\n", InterfaceClient::getInstance()->client_id_);
     try {
         // Parse the JSON string into a JSON object
         json msg_json = json::parse(str);
@@ -35,7 +35,7 @@ std::unique_ptr<Msg> BalanceTransRspParser::parse(const std::string& str) {
         return std::make_unique<BalanceTransRsp>(client_balance_pairs, msg_json["client_id"].get<int>());
     } catch (const json::parse_error& e) {
         // Handle parse error and return an empty JSON object
-        std::printf("[ERROR][BalanceTransRspParser::parse][Client %d] Parse error in BalanceTransRsp: %s.\n", InterfaceClient::getInstance()->client_id_, str.c_str());
+        std::printf("\033[31m[Error][BalanceTransRspParser::parse][Client %d] Parse error in BalanceTransRsp: %s.\033[0m\n", InterfaceClient::getInstance()->client_id_, str.c_str());
         return nullptr;
     }
 }

@@ -35,8 +35,8 @@ public:
         if (registry.find(name) != registry.end()) {
             return registry[name]();
         } else {
-            std::printf("[ERROR][ParserFactory::createParser] Unknown parser type: %s.\n", name.c_str());
-            throw std::runtime_error("[ERROR] Unknown parser type: " + name);
+            std::printf("\033[31m[Error][ParserFactory::createParser] Unknown parser type: %s.\033[0m\n", name.c_str());
+            throw std::runtime_error("[Error] Unknown parser type: " + name);
         }
     }
 

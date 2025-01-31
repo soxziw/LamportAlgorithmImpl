@@ -64,7 +64,7 @@ public:
     *
     * @param remote_lamport_clock
     */
-    void updateLamportClock(int remote_lamport_clock);
+    int updateLamportClock(int remote_lamport_clock);
 
     /**
     * getLamportClock() - get a new local lamport clock on sending message.

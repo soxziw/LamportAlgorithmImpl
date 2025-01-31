@@ -5,8 +5,8 @@ int BalanceTransReqProcessor::process(std::unique_ptr<Msg>&& msg) {
     auto lamport_client_ptr = LamportClient::getInstance();
 
     // Lock balance transaction mutex
-    std::printf("[Client %d] Process BalanceTransReq.\n", lamport_client_ptr->client_id_);
     std::unique_lock<std::mutex> balance_lock(lamport_client_ptr->balance_mutex_);
+    std::printf("[Client %d] Receive BalanceTransReq from client 0.\n", lamport_client_ptr->client_id_);
 
     // Generate BalanceTransRsp
     std::vector<std::pair<int, int>> client_balance_pairs = {};
