@@ -1,12 +1,12 @@
 #include "parsers/balanceTransRspParser.hpp"
-#include "clients/interfaceClient.hpp"
-#include "clients/lamportClient.hpp"
+#include "clients/interface.hpp"
+#include "clients/lamportServer.hpp"
 
 std::string BalanceTransRspParser::stringify(std::unique_ptr<Msg>&& msg) {
-    // std::printf("[Client %d] Stringify BalanceTransRsp.\n", LamportClient::getInstance()->client_id_);
+    // std::printf("[Server %d] Stringify BalanceTransRsp.\n", LamportServer::getInstance()->client_id_);
     BalanceTransRsp* msg_raw = dynamic_cast<BalanceTransRsp*>(msg.get());
     if (!msg_raw) { // Could not cast
-        std::printf("\033[31m[Error][BalanceTransRspParser::stringify][Client %d] message does not fit in BalanceTransRsp.\033[0m\n", LamportClient::getInstance()->client_id_);
+        std::printf("\033[31m[Error][BalanceTransRspParser::stringify][Server %d] message does not fit in BalanceTransRsp.\033[0m\n", LamportServer::getInstance()->client_id_);
     }
     std::unique_ptr<BalanceTransRsp> msg_ptr(static_cast<BalanceTransRsp*>(msg.release()));
 
@@ -23,7 +23,7 @@ std::string BalanceTransRspParser::stringify(std::unique_ptr<Msg>&& msg) {
 }
 
 std::unique_ptr<Msg> BalanceTransRspParser::parse(const std::string& str) {
-    // std::printf("[Client %d] Parse BalanceTransRsp.\n", InterfaceClient::getInstance()->client_id_);
+    // std::printf("[Server %d] Parse BalanceTransRsp.\n", Interface::getInstance()->client_id_);
     // Parse the JSON string into a JSON object
     json msg_json = json::parse(str);
     std::vector<std::pair<int, int>> client_balance_pairs;

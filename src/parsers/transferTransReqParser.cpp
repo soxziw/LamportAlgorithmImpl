@@ -1,12 +1,12 @@
 #include "parsers/transferTransReqParser.hpp"
-#include "clients/interfaceClient.hpp"
-#include "clients/lamportClient.hpp"
+#include "clients/interface.hpp"
+#include "clients/lamportServer.hpp"
 
 std::string TransferTransReqParser::stringify(std::unique_ptr<Msg>&& msg) {
-    // std::printf("[Client %d] Stringify TransferTransReq.\n", InterfaceClient::getInstance()->client_id_);
+    // std::printf("[Server %d] Stringify TransferTransReq.\n", Interface::getInstance()->client_id_);
     TransferTransReq* msg_raw = dynamic_cast<TransferTransReq*>(msg.get());
     if (!msg_raw) { // Could not cast
-        std::printf("\033[31m[Error][TransferTransReqParser::stringify][Client %d] message does not fit in TransferTransReq.\033[0m\n", InterfaceClient::getInstance()->client_id_);
+        std::printf("\033[31m[Error][TransferTransReqParser::stringify][Server %d] message does not fit in TransferTransReq.\033[0m\n", Interface::getInstance()->client_id_);
     }
     std::unique_ptr<TransferTransReq> msg_ptr(static_cast<TransferTransReq*>(msg.release()));
 
@@ -21,7 +21,7 @@ std::string TransferTransReqParser::stringify(std::unique_ptr<Msg>&& msg) {
 }
 
 std::unique_ptr<Msg> TransferTransReqParser::parse(const std::string& str) {
-    // std::printf("[Client %d] Parse TransferTransReq.\n", LamportClient::getInstance()->client_id_);
+    // std::printf("[Server %d] Parse TransferTransReq.\n", LamportServer::getInstance()->client_id_);
     // Parse the JSON string into a JSON object
     json msg_json = json::parse(str);
     return std::make_unique<TransferTransReq>(msg_json["sender_id"].get<int>(), msg_json["receiver_id"].get<int>(), msg_json["amount"].get<int>(), msg_json["client_id"].get<int>());

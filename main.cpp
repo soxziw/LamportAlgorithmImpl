@@ -1,6 +1,6 @@
 #include "configs.hpp"
-#include "clients/lamportClient.hpp"
-#include "clients/interfaceClient.hpp"
+#include "clients/lamportServer.hpp"
+#include "clients/interface.hpp"
 #include <sys/wait.h>
 #include <csignal>
 
@@ -12,12 +12,12 @@
  * - Balance transation: balance <client_id>;
  * - Exit: exit;
  */
-void cmd(std::shared_ptr<InterfaceClient> interface_client_ptr) {
+void cmd(std::shared_ptr<Interface> interface_client_ptr) {
     std::printf("\033[32m[Help] For 1 + 3 clients model:\033[0m\n");
-    std::printf("\033[32m[Help] ----id 0, interface client;\033[0m\n");
-    std::printf("\033[32m[Help] ----id 1, lamport client;\033[0m\n");
-    std::printf("\033[32m[Help] ----id 2, lamport client;\033[0m\n");
-    std::printf("\033[32m[Help] ----id 3, lamport client;\033[0m\n");
+    std::printf("\033[32m[Help] ----id 0, interface;\033[0m\n");
+    std::printf("\033[32m[Help] ----id 1, lamport server;\033[0m\n");
+    std::printf("\033[32m[Help] ----id 2, lamport server;\033[0m\n");
+    std::printf("\033[32m[Help] ----id 3, lamport server;\033[0m\n");
     char command[20];
     while (true) {
         std::printf("\033[32m[Input] Enter command (transfer <client_id> <sender> <receiver> <amount> or balance <client_id>):\033[0m\n");
@@ -76,19 +76,19 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < _ip_port_pairs.size(); i++) {
         pid_t pid = fork();
         if (pid == 0) {
-            auto lamport_client_ptr = LamportClient::getInstance();
+            auto lamport_client_ptr = LamportServer::getInstance();
             lamport_client_ptr->init(i, _balance_tb, _ip_port_pairs);
             return 0;
         }
         lamport_pids.push_back(pid);
     }
 
-    // Create interface client with id 0 in main process
-    std::printf("[Init] Creating interface client with id 0 in main process.\n");
-    auto interface_client_ptr = InterfaceClient::getInstance();
+    // Create interface with id 0 in main process
+    std::printf("[Init] Creating interface with id 0 in main process.\n");
+    auto interface_client_ptr = Interface::getInstance();
     interface_client_ptr->init(0, _ip_port_pairs);
 
-    // Input for interface client
+    // Input for interface
     cmd(interface_client_ptr);
 
     // Wait for all child processes to finish

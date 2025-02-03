@@ -11,7 +11,7 @@ struct Msg {
 };
 
 /**
- * ExitMsg - exit and stop client.
+ * ExitMsg - exit and stop server.
  */
 struct ExitMsg : public Msg {
     ExitMsg()
@@ -24,7 +24,7 @@ struct ExitMsg : public Msg {
  * - sender_id: sender's id.
  * - receiver_id: receivers'id.
  * - amount: amount of money to transfer.
- * - client_id: client that process this transaciton, receiver of this request.
+ * - client_id: server that process this transaciton, receiver of this request.
  */
 struct TransferTransReq : public Msg {
     int sender_id = -1;
@@ -40,7 +40,7 @@ struct TransferTransReq : public Msg {
  * TransferTransRsp - response of transfer transaction.
  *
  * - transfer_result: result of the transaction.
- * - client_id: client that process this transaciton, sender of this response.
+ * - client_id: server that process this transaciton, sender of this response.
  */
 struct TransferTransRsp : public Msg {
     std::string transfer_result = "FAIL";
@@ -53,7 +53,7 @@ struct TransferTransRsp : public Msg {
 /**
  * BalanceTransReq - request of balance transaction.
  *
- * - client_id: client that process this transaciton, receiver of this request.
+ * - client_id: server that process this transaciton, receiver of this request.
  */
 struct BalanceTransReq : public Msg {
     int client_id = -1;
@@ -64,8 +64,8 @@ struct BalanceTransReq : public Msg {
 /**
  * BalanceTransRsp - response of balance transaction.
  *
- * - client_balance_pairs: pairs of client id and balance.
- * - client_id: client that process this transaciton, sender of this response.
+ * - client_balance_pairs: pairs of server id and balance.
+ * - client_id: server that process this transaciton, sender of this response.
  */
 struct BalanceTransRsp : public Msg {
     std::vector<std::pair<int, int>> client_balance_pairs = {};
@@ -81,8 +81,8 @@ struct BalanceTransRsp : public Msg {
  * - sender_id: sender's id.
  * - receiver_id: receivers'id.
  * - amount: amount of money to transfer.
- * - lamport_clock: local lamport clock of the sender client.
- * - client_id: client that process the transaciton, sender of this request.
+ * - lamport_clock: local lamport clock of the sender server.
+ * - client_id: server that process the transaciton, sender of this request.
  */
 struct RequestMsg : public Msg {
     int sender_id = -1;
@@ -98,7 +98,7 @@ struct RequestMsg : public Msg {
 /**
  * ReplyMsg - reply message.
  *
- * - lamport_clock: local lamport clock of the sender client.
+ * - lamport_clock: local lamport clock of the sender server.
  * - client_id: sender of this reply.
  */
 struct ReplyMsg : public Msg {
@@ -112,8 +112,8 @@ struct ReplyMsg : public Msg {
 /**
  * ReleaseMsg - release message.
  *
- * - lamport_clock: local lamport clock of the sender client.
- * - client_id: client that process the transaciton, sender of this release.
+ * - lamport_clock: local lamport clock of the sender server.
+ * - client_id: server that process the transaciton, sender of this release.
  */
 struct ReleaseMsg : public Msg {
     int lamport_clock = -1;
@@ -126,7 +126,7 @@ struct ReleaseMsg : public Msg {
 /**
  * FinishMsg - finish message.
  *
- * - lamport_clock: local lamport clock of the sender client.
+ * - lamport_clock: local lamport clock of the sender server.
  * - client_id: sender of this finish.
  */
 struct FinishMsg : public Msg {

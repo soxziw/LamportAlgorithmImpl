@@ -1,8 +1,8 @@
-#include "clients/lamportClient.hpp"
+#include "clients/lamportServer.hpp"
 #include "parsers/msgParser.hpp"
 #include <csignal>
 
-void LamportClient::init(int client_id, const std::vector<int> balance_tb, const std::vector<std::pair<std::string, int>>& ip_port_pairs) {
+void LamportServer::init(int client_id, const std::vector<int> balance_tb, const std::vector<std::pair<std::string, int>>& ip_port_pairs) {
     initSockConfigs(client_id, ip_port_pairs);
 
     blockchain_ = Blockchain();
@@ -14,7 +14,7 @@ void LamportClient::init(int client_id, const std::vector<int> balance_tb, const
     lamport_clock_ = 0;
 
     // Register parser for request/response of transfer/balance transaction, request/reply/release/finish message
-    std::printf("[Client %d] Register parser: TransferTransReqParser, BalanceTransReqParser, TransferTransRspParser, BalanceTransRspParser, RequestMsgParser, ReplyMsgParser, ReleaseMsgParser, FinishMsgParser.\n", client_id);
+    std::printf("[Server %d] Register parser: TransferTransReqParser, BalanceTransReqParser, TransferTransRspParser, BalanceTransRspParser, RequestMsgParser, ReplyMsgParser, ReleaseMsgParser, FinishMsgParser.\n", client_id);
     parser_factory_.registerParser("TransferTransReq", []() { return std::make_unique<TransferTransReqParser>(); });
     parser_factory_.registerParser("BalanceTransReq", []() { return std::make_unique<BalanceTransReqParser>(); });
     parser_factory_.registerParser("TransferTransRsp", []() { return std::make_unique<TransferTransRspParser>(); });
@@ -25,7 +25,7 @@ void LamportClient::init(int client_id, const std::vector<int> balance_tb, const
     parser_factory_.registerParser("FinishMsg", []() { return std::make_unique<FinishMsgParser>(); });
 
     // Register processor for request of transfer/balance transanction, request/reply/release/finish message
-    std::printf("[Client %d] Register processor: TransferTransReqProcessor, BalanceTransReqProcessor, RequestMsgProcessor, ReplyMsgProcessor, ReleaseMsgProcessor, FinishMsgProcessor.\n", client_id);
+    std::printf("[Server %d] Register processor: TransferTransReqProcessor, BalanceTransReqProcessor, RequestMsgProcessor, ReplyMsgProcessor, ReleaseMsgProcessor, FinishMsgProcessor.\n", client_id);
     processor_factory_.registerProcessor("TransferTransReq", []() { return std::make_unique<TransferTransReqProcessor>(); });
     processor_factory_.registerProcessor("BalanceTransReq", []() { return std::make_unique<BalanceTransReqProcessor>(); });
     processor_factory_.registerProcessor("RequestMsg", []() { return std::make_unique<RequestMsgProcessor>(); });
@@ -41,15 +41,15 @@ void LamportClient::init(int client_id, const std::vector<int> balance_tb, const
     }
 }
 
-std::shared_ptr<LamportClient> LamportClient::getInstance() {
-    static std::shared_ptr<LamportClient> client_ptr; // static ensures uniqueness
+std::shared_ptr<LamportServer> LamportServer::getInstance() {
+    static std::shared_ptr<LamportServer> client_ptr; // static ensures uniqueness
     if (!client_ptr) {
-        client_ptr = std::make_shared<LamportClient>();
+        client_ptr = std::make_shared<LamportServer>();
     }
     return client_ptr;
 }
 
-int LamportClient::updateLamportClock(int remote_lamport_clock) {
+int LamportServer::updateLamportClock(int remote_lamport_clock) {
     // Lock lamport clock mutex of receiving
     std::unique_lock<std::mutex> lamport_clock_lock_receive(lamport_clock_mutex_);
     lamport_clock_ = std::max(lamport_clock_, remote_lamport_clock) + 1; // Lamport clock = max + 1
@@ -58,7 +58,7 @@ int LamportClient::updateLamportClock(int remote_lamport_clock) {
     return local_lamport_clock;
 }
 
-int LamportClient::getLamportClock() {
+int LamportServer::getLamportClock() {
     // Lock lamport clock mutex of sending
     std::unique_lock<std::mutex> lamport_clock_lock_send(lamport_clock_mutex_);
     lamport_clock_++; // Lamport clock++
@@ -67,11 +67,11 @@ int LamportClient::getLamportClock() {
     return local_lamport_clock;
 }
 
-void LamportClient::transfer(bool update_transfer_result) {
+void LamportServer::transfer(bool update_transfer_result) {
     Transfer transfer = transfer_pq_.top(); // Transfer priority queue is ensured not empty
     transfer_pq_.pop();
     if (balance_tb_[transfer.sender_id - 1] >= transfer.amount) { // Success, could transfer
-        std::printf("[Client %d] client %d pays client %d $%d: SUCCESS\n", client_id_, transfer.sender_id, transfer.receiver_id, transfer.amount);
+        std::printf("[Server %d] server %d pays server %d $%d: SUCCESS\n", client_id_, transfer.sender_id, transfer.receiver_id, transfer.amount);
         blockchain_.addBlock(transfer.sender_id, transfer.receiver_id, transfer.amount);
         balance_tb_[transfer.sender_id - 1] -= transfer.amount;
         balance_tb_[transfer.receiver_id - 1] += transfer.amount;
@@ -79,7 +79,7 @@ void LamportClient::transfer(bool update_transfer_result) {
             transfer_result_ = "SUCCESS";
         }
     } else { // Fail, balance not enough
-        std::printf("[Client %d] client %d pays client %d $%d: FAIL\n", client_id_, transfer.sender_id, transfer.receiver_id, transfer.amount);
+        std::printf("[Server %d] server %d pays server %d $%d: FAIL\n", client_id_, transfer.sender_id, transfer.receiver_id, transfer.amount);
         if (update_transfer_result) {
             transfer_result_ = "FAIL";
         }

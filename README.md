@@ -2,13 +2,19 @@
 
 ## Overview
 
-Once it has mutex, the client verifies if it has enough balance to issue this transfer using the local Balance Table. If the client can afford the transfer, then it inserts the transaction block at the head of the blockchain and send that block directly to all other clients, who also insert the block at the head of their local copy of the blockchain. Once inserted in the blockchain, the local copy of the Balance Table is updated. Then mutex is released. If the client does not have enough balance, the transaction is aborted and mutex is released.
+Once it has mutex, the server verifies if it has enough balance to issue this transfer using the local Balance Table. If the server can afford the transfer, then it inserts the transaction block at the head of the blockchain and send that block directly to all other clients, who also insert the block at the head of their local copy of the blockchain. Once inserted in the blockchain, the local copy of the Balance Table is updated. Then mutex is released. If the server does not have enough balance, the transaction is aborted and mutex is released.
 
 ## Requirement
    - Consistency
 
+## Techstack
+   - C++
+   - CMake, Make
+   - epoll + thread pool
+   - Singleton Pattern + Abstract Factory Pattern
+
 ## Building
-Build the system with 1 interface client and 3 lamport clients with default balance of {100, 200, 300}:
+Build the system with 1 interface and 3 lamport clients with default balance of {100, 200, 300}:
 ```bash
 make build
 ```
@@ -34,16 +40,16 @@ transfer(client_id, sender_id, receiver_id, amount): SUCCESS or FAIL
 transfer <client_id> <sender_id> <receiver_id> <amount>
 ```
 
-balance(client_id): balance returned from the server also print the blockchain in client
+balance(client_id): balance returned from the server also print the blockchain in server
 ```bash
 balance <client_id>
 ```
 
 ## Config
 
-client_num: 3 + 1(interface client)
+client_num: 3 + 1(interface)
 
-​	**Q: How to build a client**
+​	**Q: How to build a server**
 
 ​	**A: a master thread with workers in thread pool**
 
@@ -53,7 +59,7 @@ local blockchain
 
 ​	**A: On release**
 
-local balance table: K(client name):V(corresponding balance) store
+local balance table: K(server name):V(corresponding balance) store
 
 ​	**Q: When to update**
 

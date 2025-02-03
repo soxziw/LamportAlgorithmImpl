@@ -1,6 +1,6 @@
 #pragma once
 
-#include "clients/client.hpp"
+#include "clients/server.hpp"
 #include "parsers/parserFactory.hpp"
 #include "processors/processorFactory.hpp"
 #include "blockchain.hpp"
@@ -36,23 +36,23 @@ public:
 };
 
 /**
- * LamportClient - client that implement lamport algorithm.
+ * LamportServer - server that implement lamport algorithm.
  */
-class LamportClient : public Client {
+class LamportServer : public Server {
 public:
     /**
-     * init() - init lamport client.
+     * init() - init lamport server.
      *
-     * @param client_id: id of current client.
+     * @param client_id: id of current server.
      * @param balance_tb: initial balance table of all lamport clients.
      * @param ip_port_pairs: ip-port pairs for clients to build up socket connections.
      */
     void init(int client_id, const std::vector<int> balance_tb, const std::vector<std::pair<std::string, int>>& ip_port_pairs);
 
     /**
-     * getInstance() - get the static/only instance of lamport client.
+     * getInstance() - get the static/only instance of lamport server.
      */
-    static std::shared_ptr<LamportClient> getInstance();
+    static std::shared_ptr<LamportServer> getInstance();
 
     /**
     * updateLamportClock() - merge local lamport clock with remote lamport clock on receiving message.
@@ -69,7 +69,7 @@ public:
     /**
     * transfer() - implement top transfer.
     *
-    * @param update_transfer_result: update transfer result of current client or not. not update on releasing.
+    * @param update_transfer_result: update transfer result of current server or not. not update on releasing.
     */
     void transfer(bool update_transfer_result);
 
@@ -82,7 +82,7 @@ public:
     std::mutex replys_mutex_; /* mutex for replys_ */
     std::vector<bool> finishes_; /* hearing finishes from all other clients */
     std::mutex finishes_mutex_; /* mutex for finishes_ */
-    std::string transfer_result_; /* result of transfer transaction of current client */
+    std::string transfer_result_; /* result of transfer transaction of current server */
 
     int lamport_clock_; /* local lamport clock */
     std::mutex lamport_clock_mutex_; /* mutex for lamport_clock_ */

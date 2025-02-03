@@ -1,12 +1,12 @@
 #include "parsers/transferTransRspParser.hpp"
-#include "clients/interfaceClient.hpp"
-#include "clients/lamportClient.hpp"
+#include "clients/interface.hpp"
+#include "clients/lamportServer.hpp"
 
 std::string TransferTransRspParser::stringify(std::unique_ptr<Msg>&& msg) {
-    // std::printf("[Client %d] Stringify TransferTransRsp.\n", LamportClient::getInstance()->client_id_);
+    // std::printf("[Server %d] Stringify TransferTransRsp.\n", LamportServer::getInstance()->client_id_);
     TransferTransRsp* msg_raw = dynamic_cast<TransferTransRsp*>(msg.get());
     if (!msg_raw) { // Could not cast
-        std::printf("\033[31m[Error][TransferTransRspParser::stringify][Client %d] message does not fit in TransferTransRsp.\033[0m\n", LamportClient::getInstance()->client_id_);
+        std::printf("\033[31m[Error][TransferTransRspParser::stringify][Server %d] message does not fit in TransferTransRsp.\033[0m\n", LamportServer::getInstance()->client_id_);
     }
     std::unique_ptr<TransferTransRsp> msg_ptr(static_cast<TransferTransRsp*>(msg.release()));
 
@@ -19,7 +19,7 @@ std::string TransferTransRspParser::stringify(std::unique_ptr<Msg>&& msg) {
 }
 
 std::unique_ptr<Msg> TransferTransRspParser::parse(const std::string& str) {
-    // std::printf("[Client %d] Parse TransferTransRsp.\n", InterfaceClient::getInstance()->client_id_);
+    // std::printf("[Server %d] Parse TransferTransRsp.\n", Interface::getInstance()->client_id_);
     // Parse the JSON string into a JSON object
     json msg_json = json::parse(str);
     return std::make_unique<TransferTransRsp>(msg_json["transfer_result"].get<std::string>(), msg_json["client_id"].get<int>());

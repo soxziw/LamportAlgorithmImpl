@@ -17,14 +17,14 @@
 #include "processors/processorFactory.hpp"
 
 /**
- * Client - base class of clients.
+ * Server - base class of clients.
  */
-class Client : public std::enable_shared_from_this<Client> {
+class Server : public std::enable_shared_from_this<Server> {
 public:
     /**
      * initSockConfigs() - init socket configurations.
      *
-     * @param client_id: id of current client.
+     * @param client_id: id of current server.
      * @param ip_port_pairs: ip-port pairs for clients to build up socket connections.
      */
     void initSockConfigs(int client_id, const std::vector<std::pair<std::string, int>>& ip_port_pairs);
@@ -45,7 +45,7 @@ public:
     void stop();
 
     /**
-    * sendMsg() - sending message to target client.
+    * sendMsg() - sending message to target server.
     *
     * @param target_client_id
     * @param str
@@ -65,11 +65,11 @@ public:
     void masterThreadFunc();
     
     /**
-     * handleClient() - handle message from other client.
+     * handleServer() - handle message from other server.
      *
      * @param client_sock
      */
-    void handleClient(int client_sock);
+    void handleServer(int client_sock);
 
     /**
      * workerThreadFunc() - function that run on worker thread.

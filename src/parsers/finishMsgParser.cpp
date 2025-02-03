@@ -1,11 +1,11 @@
 #include "parsers/finishMsgParser.hpp"
-#include "clients/lamportClient.hpp"
+#include "clients/lamportServer.hpp"
 
 std::string FinishMsgParser::stringify(std::unique_ptr<Msg>&& msg) {
-    // std::printf("[Client %d] Stringify FinishMsg.\n", LamportClient::getInstance()->client_id_);
+    // std::printf("[Server %d] Stringify FinishMsg.\n", LamportServer::getInstance()->client_id_);
     FinishMsg* msg_raw = dynamic_cast<FinishMsg*>(msg.get());
     if (!msg_raw) { // Could not cast
-        std::printf("\033[31m[Error][FinishMsgParser::stringify][Client %d] message does not fit in FinishMsg.\033[0m\n", LamportClient::getInstance()->client_id_);
+        std::printf("\033[31m[Error][FinishMsgParser::stringify][Server %d] message does not fit in FinishMsg.\033[0m\n", LamportServer::getInstance()->client_id_);
     }
     std::unique_ptr<FinishMsg> msg_ptr(static_cast<FinishMsg*>(msg.release()));
 
@@ -18,7 +18,7 @@ std::string FinishMsgParser::stringify(std::unique_ptr<Msg>&& msg) {
 }
 
 std::unique_ptr<Msg> FinishMsgParser::parse(const std::string& str) {
-    // std::printf("[Client %d] Parse FinishMsg.\n", LamportClient::getInstance()->client_id_);
+    // std::printf("[Server %d] Parse FinishMsg.\n", LamportServer::getInstance()->client_id_);
     // Parse the JSON string into a JSON object
     json msg_json = json::parse(str);
     return std::make_unique<FinishMsg>(msg_json["lamport_clock"].get<int>(), msg_json["client_id"].get<int>());
