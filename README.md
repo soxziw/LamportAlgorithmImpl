@@ -2,7 +2,7 @@
 
 ## Overview
 
-Once it has mutex, the server verifies if it has enough balance to issue this transfer using the local Balance Table. If the server can afford the transfer, then it inserts the transaction block at the head of the blockchain and send that block directly to all other clients, who also insert the block at the head of their local copy of the blockchain. Once inserted in the blockchain, the local copy of the Balance Table is updated. Then mutex is released. If the server does not have enough balance, the transaction is aborted and mutex is released.
+Once it has mutex, the server verifies if it has enough balance to issue this transfer using the local Balance Table. If the server can afford the transfer, then it inserts the transaction block at the head of the blockchain and send that block directly to all other servers, who also insert the block at the head of their local copy of the blockchain. Once inserted in the blockchain, the local copy of the Balance Table is updated. Then mutex is released. If the server does not have enough balance, the transaction is aborted and mutex is released.
 
 ## Requirement
    - Consistency
@@ -14,11 +14,11 @@ Once it has mutex, the server verifies if it has enough balance to issue this tr
    - Singleton Pattern + Abstract Factory Pattern
 
 ## Building
-Build the system with 1 interface and 3 lamport clients with default balance of {100, 200, 300}:
+Build the system with 1 interface and 3 lamport servers with default balance of {100, 200, 300}:
 ```bash
 make build
 ```
-To build system with more lamport clients and with self-defined balance, you need to change parameters in `include/configs.hpp`.
+To build system with more lamport servers and with self-defined balance, you need to change parameters in `include/configs.hpp`.
 
 Clean everything you have built:
 ```bash
