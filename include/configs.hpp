@@ -23,7 +23,7 @@ std::vector<std::pair<std::string, int>> _ip_port_pairs = {
  * The starting point of each lamport clients.
  */
 std::vector<int> _balance_tb = {
-    100, 
-    200, 
-    300
+    10, 
+    10, 
+    10
 };
